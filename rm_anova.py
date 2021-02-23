@@ -24,7 +24,10 @@ def CALCULATE_MAIN_EFFECTS_SS_DF(
     factor_level_dict, all_normalized_squared_sum):
     OTHER_FACTORS = factors[:]
     OTHER_FACTORS.remove(factor)
-    this_data = data.reorder_levels([factor] + OTHER_FACTORS, axis=1)
+    if len(OTHER_FACTORS) > 0:
+        this_data = data.reorder_levels([factor] + OTHER_FACTORS, axis=1)
+    else:
+        this_data = data
     SS = sum([
         NORMALIZED_SQUARED_SUM(FLATTEN_DATAFRAME(this_data[c]))
         for c in factor_level_dict[factor]
@@ -52,7 +55,10 @@ def FIND_PARAMETERS_FOR_INTERACTIONS(
         for x in CONDITION_FACTORS
         ]))
     OTHER_FACTORS = list(set(factors) - set(effect))
-    this_data = data.reorder_levels(list(CONDITION_FACTORS) + OTHER_FACTORS, axis=1)
+    if len(OTHER_FACTORS) > 0:
+        this_data = data.reorder_levels(list(CONDITION_FACTORS) + OTHER_FACTORS, axis=1)
+    else:
+        this_data = data
     return LOWER_EFFECTS, CONDITION_FACTORS, CONDITIONS, this_data
 
 
@@ -105,8 +111,12 @@ def CALCULATE_INTERACTION_ERRORS_SS_DF(
 
 
 def RM_ANOVA(data):
+    if data.columns.nlevels > 1:
+        data.columns = data.columns.remove_unused_levels()
+        COLUMNS = [list(a) for a in data.columns.levels]
+    else:
+        COLUMNS = [list(data.columns)]
     SUBJ_N = len(data.index)
-    COLUMNS = [list(a) for a in data.columns.levels]
     FACTOR_N = len(COLUMNS)
     FACTOR_NAMES = list(data.columns.names)
     FACTOR_LEVEL_DICT = dict(zip(FACTOR_NAMES, COLUMNS))
