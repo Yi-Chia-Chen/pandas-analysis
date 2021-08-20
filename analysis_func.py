@@ -1,3 +1,4 @@
+import os
 import functools
 from datetime import datetime
 
@@ -7,6 +8,11 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 
 # general functions
+def CHECK_AND_CREATE_FOLDERS(path):
+    PATH = path.strip('/').strip('\\')
+    if not os.path.exists(PATH):
+        os.makedirs(PATH)
+
 def TODAY_DATE_STRING():
     return str(datetime.now()).split('.')[0].split(' ')[0].replace('-', '.')
 
