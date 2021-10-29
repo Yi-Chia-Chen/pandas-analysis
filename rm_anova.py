@@ -1,3 +1,4 @@
+import string
 import itertools
 
 import pandas as pd
@@ -116,10 +117,15 @@ def RM_ANOVA(data):
         COLUMNS = [list(a) for a in data.columns.levels]
     else:
         COLUMNS = [list(data.columns)]
-    SUBJ_N = len(data.index)
     FACTOR_N = len(COLUMNS)
     FACTOR_NAMES = list(data.columns.names)
+    if None in FACTOR_NAMES:
+        if FACTOR_N > 1:
+            FACTOR_NAMES = string.ascii_uppercase[0:FACTOR_N]
+        else:
+            FACTOR_NAMES = ['A']
     FACTOR_LEVEL_DICT = dict(zip(FACTOR_NAMES, COLUMNS))
+    SUBJ_N = len(data.index)
 
     table = pd.DataFrame(columns=['SS','df','MS','F','p','eta^2'])
 
