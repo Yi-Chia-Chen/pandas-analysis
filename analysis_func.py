@@ -7,7 +7,14 @@ from scipy import stats
 from matplotlib import pyplot as plt
 import seaborn as sns
 
-# general functions
+ ######   ######## ##    ## ######## ########     ###    ##
+##    ##  ##       ###   ## ##       ##     ##   ## ##   ##
+##        ##       ####  ## ##       ##     ##  ##   ##  ##
+##   #### ######   ## ## ## ######   ########  ##     ## ##
+##    ##  ##       ##  #### ##       ##   ##   ######### ##
+##    ##  ##       ##   ### ##       ##    ##  ##     ## ##
+ ######   ######## ##    ## ######## ##     ## ##     ## ########
+
 def CHECK_AND_CREATE_FOLDERS(path):
     PATH = path.strip('/').strip('\\')
     if not os.path.exists(PATH):
@@ -16,7 +23,15 @@ def CHECK_AND_CREATE_FOLDERS(path):
 def TODAY_DATE_STRING():
     return str(datetime.now()).split('.')[0].split(' ')[0].replace('-', '.')
 
-# statistics functions
+
+ ######  ########    ###    ######## ####  ######  ######## ####  ######   ######
+##    ##    ##      ## ##      ##     ##  ##    ##    ##     ##  ##    ## ##    ##
+##          ##     ##   ##     ##     ##  ##          ##     ##  ##       ##
+ ######     ##    ##     ##    ##     ##   ######     ##     ##  ##        ######
+      ##    ##    #########    ##     ##        ##    ##     ##  ##             ##
+##    ##    ##    ##     ##    ##     ##  ##    ##    ##     ##  ##    ## ##    ##
+ ######     ##    ##     ##    ##    ####  ######     ##    ####  ######   ######
+
 def CALCULATE_SS_FROM_MEAN(number_list):
     count = len(number_list)
     mean = float(sum(number_list))/count
@@ -62,7 +77,15 @@ def CALCULATE_PEARSON_R(x_list, y_list):
         p = 0
     return (r, p)
 
-# pandas functions
+
+########     ###    ##    ## ########     ###     ######
+##     ##   ## ##   ###   ## ##     ##   ## ##   ##    ##
+##     ##  ##   ##  ####  ## ##     ##  ##   ##  ##
+########  ##     ## ## ## ## ##     ## ##     ##  ######
+##        ######### ##  #### ##     ## #########       ##
+##        ##     ## ##   ### ##     ## ##     ## ##    ##
+##        ##     ## ##    ## ########  ##     ##  ######
+
 def CLEAN_CARRIAGE_RETURN(df):
     df = df.copy()
     last_column_name = list(df.columns)[-1]
@@ -78,7 +101,15 @@ def DELETE_REPEATING_TITLES(df):
     df = df.drop(df.loc[df[first_column_name] == first_column_name].index, axis=0)
     return df
 
-# seaborn functions
+
+ ######  ########    ###    ########   #######  ########  ##    ##
+##    ## ##         ## ##   ##     ## ##     ## ##     ## ###   ##
+##       ##        ##   ##  ##     ## ##     ## ##     ## ####  ##
+ ######  ######   ##     ## ########  ##     ## ########  ## ## ##
+      ## ##       ######### ##     ## ##     ## ##   ##   ##  ####
+##    ## ##       ##     ## ##     ## ##     ## ##    ##  ##   ###
+ ######  ######## ##     ## ########   #######  ##     ## ##    ##
+
 def PLOT_DISTRIBUTION(
     data_list, color='#3d879c', hist=True, kde=True, rug=True,
     x_limit=None, y_limit=None,
