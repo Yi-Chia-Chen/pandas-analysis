@@ -8,11 +8,11 @@ import scipy.stats
 import analysis_func
 
 
-def NORMALIZED_SQUARED_SUM(input_list):
-    return sum(input_list)**2/len(input_list)
+def normalized_squared_sum(input_list):
+    return sum(input_list) ** 2 / len(input_list)
 
 
-def FLATTEN_DATAFRAME(frame):
+def flatten_dataframe(frame):
     if isinstance(frame, np.floating):
         results = [frame]
     else:
@@ -20,167 +20,177 @@ def FLATTEN_DATAFRAME(frame):
     return results
 
 
-def CALCULATE_MAIN_EFFECTS_SS_DF(
-    factor, factors, data,
-    factor_level_dict, all_normalized_squared_sum):
-    OTHER_FACTORS = factors[:]
-    OTHER_FACTORS.remove(factor)
-    if len(OTHER_FACTORS) > 0:
-        this_data = data.reorder_levels([factor] + OTHER_FACTORS, axis=1)
+def calculate_main_effects_ss_df(
+    factor, factors, data, factor_level_dict, all_normalized_squared_sum
+):
+    other_factors = factors[:]
+    other_factors.remove(factor)
+    if len(other_factors) > 0:
+        this_data = data.reorder_levels([factor] + other_factors, axis=1)
     else:
         this_data = data
-    SS = sum([
-        NORMALIZED_SQUARED_SUM(FLATTEN_DATAFRAME(this_data[c]))
-        for c in factor_level_dict[factor]
-        ]) - all_normalized_squared_sum
-    DF = len(factor_level_dict[factor]) - 1
-    return SS, DF
+    ss = (
+        sum(
+            [
+                normalized_squared_sum(flatten_dataframe(this_data[c]))
+                for c in factor_level_dict[factor]
+            ]
+        )
+        - all_normalized_squared_sum
+    )
+    df = len(factor_level_dict[factor]) - 1
+    return ss, df
 
 
-def FIND_PARAMETERS_FOR_INTERACTIONS(
-    effect, factors, data, factor_level_dict, error):
-
-    LOWER_EFFECTS = []
-    for i in range(1,len(effect)):
-        LOWER_EFFECTS += list(itertools.combinations(effect, i))
-    LOWER_EFFECTS = [
-        ' x '.join(x)
-        if len(x) != 1 else x[0]
-        for x in LOWER_EFFECTS
-        ]
-    CONDITION_FACTORS = list(effect[:])
+def find_parameters_for_interactions(effect, factors, data, factor_level_dict, error):
+    lower_effects = []
+    for i in range(1, len(effect)):
+        lower_effects += list(itertools.combinations(effect, i))
+    lower_effects = [" x ".join(x) if len(x) != 1 else x[0] for x in lower_effects]
+    condition_factors = list(effect[:])
     if error:
-        CONDITION_FACTORS.remove('S')
-    CONDITIONS = list(itertools.product(*[
-        factor_level_dict[x]
-        for x in CONDITION_FACTORS
-        ]))
-    OTHER_FACTORS = list(set(factors) - set(effect))
-    if len(OTHER_FACTORS) > 0:
-        this_data = data.reorder_levels(list(CONDITION_FACTORS) + OTHER_FACTORS, axis=1)
+        condition_factors.remove("S")
+    conditions = list(
+        itertools.product(*[factor_level_dict[x] for x in condition_factors])
+    )
+    other_factors = list(set(factors) - set(effect))
+    if len(other_factors) > 0:
+        this_data = data.reorder_levels(list(condition_factors) + other_factors, axis=1)
     else:
         this_data = data
-    return LOWER_EFFECTS, CONDITION_FACTORS, CONDITIONS, this_data
+    return lower_effects, condition_factors, conditions, this_data
 
 
-def CALCULATE_INTERACTION_EFFECTS_SS_DF(
-    effect, factors, data, table,
-    factor_level_dict, all_normalized_squared_sum):
-
-    LOWER_EFFECTS, _, CONDITIONS, this_data = FIND_PARAMETERS_FOR_INTERACTIONS(
+def calculate_interaction_effects_ss_df(
+    effect, factors, data, table, factor_level_dict, all_normalized_squared_sum
+):
+    lower_effects, _, conditions, this_data = find_parameters_for_interactions(
         effect, factors, data, factor_level_dict, False
-        )
-    SUM_VALUE = sum([
-        NORMALIZED_SQUARED_SUM(FLATTEN_DATAFRAME(this_data[c]))
-        for c in CONDITIONS
-        ])
-    SUBTRACT_VALUE = all_normalized_squared_sum + sum([
-        table.loc[x,'SS']
-        for x in LOWER_EFFECTS
-        ])
-    SS = SUM_VALUE - SUBTRACT_VALUE
-    DF = np.prod([
-        len(factor_level_dict[f]) - 1
-        for f in effect
-        ])
-    return SS, DF
+    )
+    sum_value = sum(
+        [normalized_squared_sum(flatten_dataframe(this_data[c])) for c in conditions]
+    )
+    subtract_value = all_normalized_squared_sum + sum(
+        [table.loc[x, "SS"] for x in lower_effects]
+    )
+    ss = sum_value - subtract_value
+    df = np.prod([len(factor_level_dict[f]) - 1 for f in effect])
+    return ss, df
 
 
-def CALCULATE_INTERACTION_ERRORS_SS_DF(
-    effect, factors, data, table,
-    factor_level_dict, all_normalized_squared_sum):
+def calculate_interaction_errors_ss_df(
+    effect, factors, data, table, factor_level_dict, all_normalized_squared_sum
+):
+    (
+        lower_effects,
+        condition_factors,
+        conditions,
+        this_data,
+    ) = find_parameters_for_interactions(effect, factors, data, factor_level_dict, True)
+    subj_n = len(data.index)
+    sum_value = sum(
+        [
+            normalized_squared_sum(flatten_dataframe(this_data.loc[i, c]))
+            for c in conditions
+            for i in this_data.index
+        ]
+    )
+    subtract_value = all_normalized_squared_sum + sum(
+        [table.loc[x, "SS"] for x in lower_effects]
+    )
+    ss = sum_value - subtract_value
+    df = np.prod([len(factor_level_dict[f]) - 1 for f in condition_factors]) * (
+        subj_n - 1
+    )
+    return ss, df
 
-    LOWER_EFFECTS, CONDITION_FACTORS, CONDITIONS, this_data = FIND_PARAMETERS_FOR_INTERACTIONS(
-        effect, factors, data, factor_level_dict, True
-        )
-    SUBJ_N = len(data.index)
-    SUM_VALUE = sum([
-        NORMALIZED_SQUARED_SUM(FLATTEN_DATAFRAME(this_data.loc[i,c]))
-        for c in CONDITIONS
-        for i in this_data.index
-        ])
-    SUBTRACT_VALUE = all_normalized_squared_sum + sum([
-        table.loc[x,'SS']
-        for x in LOWER_EFFECTS
-        ])
-    SS = SUM_VALUE - SUBTRACT_VALUE
-    DF = np.prod([
-        len(factor_level_dict[f]) - 1
-        for f in CONDITION_FACTORS
-        ]) * (SUBJ_N - 1)
-    return SS, DF
 
-
-def RM_ANOVA(data):
+def rm_anova(data):
     if data.columns.nlevels > 1:
         data.columns = data.columns.remove_unused_levels()
-        COLUMNS = [list(a) for a in data.columns.levels]
+        columns = [list(a) for a in data.columns.levels]
     else:
-        COLUMNS = [list(data.columns)]
-    FACTOR_N = len(COLUMNS)
-    FACTOR_NAMES = list(data.columns.names)
-    if None in FACTOR_NAMES:
-        if FACTOR_N > 1:
-            FACTOR_NAMES = string.ascii_uppercase[0:FACTOR_N]
+        columns = [list(data.columns)]
+    factor_n = len(columns)
+    factor_names = list(data.columns.names)
+    if None in factor_names:
+        if factor_n > 1:
+            factor_names = string.ascii_uppercase[0:factor_n]
         else:
-            FACTOR_NAMES = ['A']
-    FACTOR_LEVEL_DICT = dict(zip(FACTOR_NAMES, COLUMNS))
-    SUBJ_N = len(data.index)
+            factor_names = ["A"]
+    factor_level_dict = dict(zip(factor_names, columns))
+    subj_n = len(data.index)
 
-    table = pd.DataFrame(columns=['SS','df','MS','F','p','eta^2'])
+    table = pd.DataFrame(columns=["SS", "df", "MS", "F", "p", "eta^2"])
 
-    ALL_NORMALIZED_SQUARED_SUM = NORMALIZED_SQUARED_SUM(FLATTEN_DATAFRAME(data))
+    all_normalized_squared_sum = normalized_squared_sum(flatten_dataframe(data))
 
     # main effects SS & df
-    for f in FACTOR_NAMES:
-        ss, df = CALCULATE_MAIN_EFFECTS_SS_DF(
-            f, FACTOR_NAMES, data,
-            FACTOR_LEVEL_DICT, ALL_NORMALIZED_SQUARED_SUM
-            )
-        table.loc[f,'SS'] = ss
-        table.loc[f,'df'] = df
-    table.loc['S','SS'] = sum([
-        NORMALIZED_SQUARED_SUM(FLATTEN_DATAFRAME(row))
-        for _, row in data.iterrows()
-        ]) - ALL_NORMALIZED_SQUARED_SUM
-    table.loc['S','df'] = SUBJ_N - 1
+    for f in factor_names:
+        ss, df = calculate_main_effects_ss_df(
+            f, factor_names, data, factor_level_dict, all_normalized_squared_sum
+        )
+        table.loc[f, "SS"] = ss
+        table.loc[f, "df"] = df
+    table.loc["S", "SS"] = (
+        sum(
+            [
+                normalized_squared_sum(flatten_dataframe(row))
+                for _, row in data.iterrows()
+            ]
+        )
+        - all_normalized_squared_sum
+    )
+    table.loc["S", "df"] = subj_n - 1
 
     # interaction effects and errors SS & df
     effects = []
-    for i in range(2, FACTOR_N + 2):
-        effects += list(itertools.combinations(FACTOR_NAMES + ['S'], i))
+    for i in range(2, factor_n + 2):
+        effects += list(itertools.combinations(factor_names + ["S"], i))
 
     for e in effects:
-        if 'S' in e:
+        if "S" in e:
             # errors
-            ss, df = CALCULATE_INTERACTION_ERRORS_SS_DF(
-                e, FACTOR_NAMES, data, table,
-                FACTOR_LEVEL_DICT, ALL_NORMALIZED_SQUARED_SUM
-                )
-            this_index = ' x '.join(e)
-            table.loc[this_index,'SS'] = ss
-            table.loc[this_index,'df'] = df
+            ss, df = calculate_interaction_errors_ss_df(
+                e,
+                factor_names,
+                data,
+                table,
+                factor_level_dict,
+                all_normalized_squared_sum,
+            )
+            this_index = " x ".join(e)
+            table.loc[this_index, "SS"] = ss
+            table.loc[this_index, "df"] = df
         else:
             # interactions
-            ss, df = CALCULATE_INTERACTION_EFFECTS_SS_DF(
-                e, FACTOR_NAMES, data, table,
-                FACTOR_LEVEL_DICT, ALL_NORMALIZED_SQUARED_SUM
-                )
-            this_index = ' x '.join(e)
-            table.loc[this_index,'SS'] = ss
-            table.loc[this_index,'df'] = df
+            ss, df = calculate_interaction_effects_ss_df(
+                e,
+                factor_names,
+                data,
+                table,
+                factor_level_dict,
+                all_normalized_squared_sum,
+            )
+            this_index = " x ".join(e)
+            table.loc[this_index, "SS"] = ss
+            table.loc[this_index, "df"] = df
 
     # MS
     for e in table.index:
-        table.loc[e,'MS'] = table.loc[e,'SS'] / table.loc[e,'df']
+        table.loc[e, "MS"] = table.loc[e, "SS"] / table.loc[e, "df"]
 
     # F, p, eta^2
-    TESTING_EFFECTS = [i for i in table.index if 'S' not in i]
-    ERRORS = [i for i in table.index if 'S' in i]
-    for e in TESTING_EFFECTS:
-        table.loc[e,'F'] = table.loc[e,'MS'] / table.loc[e+' x S','MS']
-        table.loc[e,'p'] = 1 - scipy.stats.f.cdf(table.loc[e,'F'], table.loc[e,'df'], table.loc[e+' x S','df'])
-        table.loc[e,'eta^2'] = table.loc[e,'SS'] / (table.loc[e,'SS'] + table.loc[e + ' x S','SS'])
-    table = table.reindex(TESTING_EFFECTS + ERRORS)
+    testing_effects = [i for i in table.index if "S" not in i]
+    errors = [i for i in table.index if "S" in i]
+    for e in testing_effects:
+        table.loc[e, "F"] = table.loc[e, "MS"] / table.loc[e + " x S", "MS"]
+        table.loc[e, "p"] = 1 - scipy.stats.f.cdf(
+            table.loc[e, "F"], table.loc[e, "df"], table.loc[e + " x S", "df"]
+        )
+        table.loc[e, "eta^2"] = table.loc[e, "SS"] / (
+            table.loc[e, "SS"] + table.loc[e + " x S", "SS"]
+        )
+    table = table.reindex(testing_effects + errors)
 
     return table
