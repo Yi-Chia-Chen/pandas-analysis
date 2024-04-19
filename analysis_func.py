@@ -135,6 +135,7 @@ def plot_distribution(
     y_label=None,
     save=False,
     dpi=200,
+    file_name = ""
 ):
     plot_settings = {
         "axes.grid": False,
@@ -167,8 +168,9 @@ def plot_distribution(
         if save:
             today_date = get_date_string()
             plt.savefig(
-                "distribution_" + today_date + ".png", dpi=dpi, bbox_inches="tight"
+                file_name + "_distribution_" + today_date + ".png", dpi=dpi, bbox_inches="tight"
             )
             plt.savefig(
-                "distribution_" + today_date + ".svg", dpi=dpi, bbox_inches="tight"
+                file_name + "_distribution_" + today_date + ".svg", dpi=dpi, bbox_inches="tight"
             )
+        plt.show()
